@@ -11,18 +11,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author admin
+ * @author Echon
  * @date 2019-2-18 15:56
  */
 public class XmlParser extends AbstractParser implements Parser {
 
-    public Map<String,Object> parser(File file) throws Exception {
+    public Map<String, Object> parser(File file) throws Exception {
         Map<String, Object> map = new HashMap<String, Object>();
         SAXBuilder sb = new SAXBuilder();
         Document document = sb.build(file);
         Element root = document.getRootElement();
-        //map.put("name", file.getName().replace(".xml", ""));
-        //map.put("file", file);
 
         map.put("table", eleAttrValueTrim(root, "table"));
         map.put("alias", eleAttrValueTrim(root, "alias"));
@@ -30,28 +28,28 @@ public class XmlParser extends AbstractParser implements Parser {
         return map;
     }
 
-    private   Map<String, Map<String, Object>> readFields(Element eleFields) {
+    public Map<String, Map<String, Object>> readFields(Element eleFields) {
         if (eleFields == null) return null;
 
         Map<String, Map<String, Object>> fields = new HashMap<String, Map<String, Object>>();
         List<Element> childes = eleFields.getChildren();
         Map<String, Object> field;
         for (Element children : childes) {
-            field = new HashMap<String, Object>();
-            field.put("alias",eleAttrValueTrim(children, "alias"));
-            field.put("type",eleAttrValueTrim(children, "type"));
-            field.put("name",eleAttrValueTrim(children, "name"));
-            field.put("domain",eleAttrValueTrim(children, "domain"));
-            field.put("filter",eleAttrValueTrim(children, "filter"));
-            field.put("dictionary",eleAttrValueTrim(children, "dictionary"));
+            field = new HashMap<>();
+            field.put("alias", eleAttrValueTrim(children, "alias"));
+            field.put("type", eleAttrValueTrim(children, "type"));
+            field.put("name", eleAttrValueTrim(children, "name"));
+            field.put("domain", eleAttrValueTrim(children, "domain"));
+            field.put("filter", eleAttrValueTrim(children, "filter"));
+            field.put("dictionary", eleAttrValueTrim(children, "dictionary"));
             String exSort = eleAttrValueTrim(children, "exSort");
             if (exSort != null) {
-                field.put("exSort",Integer.valueOf(exSort));
+                field.put("exSort", Integer.valueOf(exSort));
             }
-            field.put("exAlias",eleAttrValueTrim(children, "exAlias"));
+            field.put("exAlias", eleAttrValueTrim(children, "exAlias"));
             String imSort = eleAttrValueTrim(children, "imSort");
             if (imSort != null) {
-                field.put("imSort",Integer.valueOf(imSort));
+                field.put("imSort", Integer.valueOf(imSort));
             }
 
             fields.put(eleAttrValueTrim(children, "name"), field);

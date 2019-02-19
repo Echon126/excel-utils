@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Map;
 
 /**
- * @author admin
+ * @author Echon
  * @date 2019-2-18 17:28
  */
 public interface Parser {

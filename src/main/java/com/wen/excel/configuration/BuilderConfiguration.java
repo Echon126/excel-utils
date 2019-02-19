@@ -1,8 +1,11 @@
 package com.wen.excel.configuration;
 
 import com.wen.excel.Parser;
-import com.wen.excel.parser.XmlParser;
 import com.wen.excel.parser.PropertieParser;
+import com.wen.excel.parser.XmlParser;
+import com.wen.excel.util.Constants;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.poi.hssf.usermodel.HSSFRichTextString;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
@@ -15,10 +18,12 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author admin
+ * @author Echon
  * @date 2019-2-18 17:17
  */
+
 public class BuilderConfiguration {
+    protected final Log logger = LogFactory.getLog(getClass());
 
     public Map<String, Map<String, Object>> configeValue = new ConcurrentHashMap<String, Map<String, Object>>(64);
 
@@ -34,7 +39,8 @@ public class BuilderConfiguration {
     }
 
     public void init(String path) {
-        parserMap = new HashMap<String, Parser>();
+        parserMap = new HashMap<>();
+
         parserMap.put("xml", new XmlParser());
         parserMap.put("properties", new PropertieParser());
 
@@ -57,36 +63,28 @@ public class BuilderConfiguration {
             try {
                 configeValue.put(f.getName().replace(".xml", ""), fileParser.parser(f));
             } catch (Exception e) {
-                System.out.println("构建模板文件时发生错误" + e.getMessage());
-                e.printStackTrace();
+                logger.error("构建模板文件错误. 错误信息: {}", e);
+
             }
         }
     }
 
-    /**
-     * @param model 模板的文件名
-     * @param list  需要导出的数据
-     * @return
-     */
-    public String builderUtils(String model, List<Map<String, Object>> list) throws IOException {
+    public String builderUtils(String model, List<Map<String, Object>> list) {
         long f = new Date().getTime();
         Map<String, Object> map = configeValue.get(model);
-        if (list.size() == 0 || list == null) {
-            return "导出数据为空！";
-        }
-        String fileName = map.get("alias") + "-" + new Date().getTime() + ".xls";
+        String fileName = map.get("alias") + "-" + new Date().getTime() + Constants.EXCEL_SUFFIX;
         Map<String, Map<String, Object>> fields = (Map<String, Map<String, Object>>) map.get("fields");
         TreeMap<Integer, Map<String, Object>> treeMap = new TreeMap<Integer, Map<String, Object>>();
         Map<String, Integer> hashMap = new HashMap<String, Integer>();
         List<Integer> exportFieldWidth = new ArrayList<Integer>();
-        Iterator<Map.Entry<String, Map<String, Object>>> iterator = fields.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Map<String, Object>> field = iterator.next();
+
+        for (Map.Entry<String, Map<String, Object>> field : fields.entrySet()) {
             treeMap.put((Integer) field.getValue().get("exSort"), field.getValue());
             hashMap.put(field.getKey(), (Integer) field.getValue().get("exSort"));
 
             exportFieldWidth.add(15);
         }
+
         Workbook workbook = new HSSFWorkbook();
         // 生成一个表格
         Sheet sheet = workbook.createSheet(fileName);
@@ -94,26 +92,24 @@ public class BuilderConfiguration {
         // 产生表格标题行
         int index = 0;
         Row row = sheet.createRow(index);
-        Iterator<Map.Entry<Integer, Map<String, Object>>> itTree = treeMap.entrySet().iterator();
-        while (itTree.hasNext()) {
-            Map.Entry<Integer, Map<String, Object>> entryTree = itTree.next();
+        for (Map.Entry<Integer, Map<String, Object>> entryTree : treeMap.entrySet()) {
             Cell cell = row.createCell(entryTree.getKey());
             RichTextString text = new HSSFRichTextString((String) entryTree.getValue().get("alias"));
             cell.setCellValue(text);
         }
+
         //设置每行的列宽
         for (int i = 0; i < exportFieldWidth.size(); i++) {
             //256=65280/255
             sheet.setColumnWidth(i, 256 * exportFieldWidth.get(i));
         }
+
         // 循环插入剩下的集合
         for (Map<String, Object> dm : list) {
             // 从第二行开始写，第一行是标题
             index++;
             row = sheet.createRow(index);
-            Iterator<Map.Entry<String, Object>> it = dm.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<String, Object> entry = it.next();
+            for (Map.Entry<String, Object> entry : dm.entrySet()) {
                 if (hashMap.containsKey(entry.getKey() + "")) {
                     Cell cell = row.createCell(hashMap.get(entry.getKey() + ""));
                     cell.setCellValue(entry.getValue().toString());
@@ -121,12 +117,15 @@ public class BuilderConfiguration {
 
             }
         }
-        OutputStream out = new FileOutputStream(downDir+fileName);
-        workbook.write(out);
-        out.flush();
-        out.close();
+
+        try (OutputStream out = new FileOutputStream(downDir + fileName)) {
+            workbook.write(out);
+        } catch (IOException e) {
+            logger.error("生成excel文件时发生错误.错误信息:{}", e);
+        }
+
         long e = new Date().getTime();
-        System.out.println("共" + (e - f) + "毫秒完成");
+        logger.debug("共" + (e - f) + "毫秒完成");
         return fileName;
     }
 
